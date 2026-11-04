@@ -7,6 +7,11 @@ services:
     restart: unless-stopped
     environment:
       TZ: ${TZ}
+      # 服务的 API 也在本机被 ollama CLI（健康检查）访问：核心注入的代理变量（和共用 Docker 的客户端代理）
+      # 不豁免 0.0.0.0 这个主机名，会把本机请求送进代理，ollama ls 因此失败。只豁免本机地址，
+      # 拉模型的 registry.ollama.ai 照常走代理。
+      NO_PROXY: localhost,127.0.0.1,0.0.0.0
+      no_proxy: localhost,127.0.0.1,0.0.0.0
     # 模型和身份密钥都在上游默认的 /root/.ollama；镜像默认以 root 运行，数据目录也就归 root。
     volumes:
       - ${WONTON_APP_DATA}/.ollama:/root/.ollama
@@ -72,6 +77,6 @@ x-wonton:
       - { service: ollama, port: 11434 }
   requirements:
     arch: [amd64, arm64]
-    # 上游没写最低内存，按实测取整（见 PR）。
-    memory: 512M
+    # 上游没写最低内存；本机实测空闲约 20MiB，跑起来加小模型的余量取 256M。
+    memory: 256M
     gpu: { need: optional }
