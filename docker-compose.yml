@@ -1,57 +1,82 @@
-# 示例插件：nginx 显示一个网页，向登录的人问好。照着 README 的“写插件”换成你的应用。
+# Ollama：本地模型服务。模型经 magpie 模型网关用起来（ADR-0008：本地模型插件装好后，
+# 在“模型设置”里把 Ollama 注册为 provider），网关的容器到不了插件网络，唯一通的路是把 API 端口
+# 开在局域网地址上（ADR-0019/0023：Ollama 的 API 本来就是给局域网设备用的，没有鉴权，核心不拦）。
 services:
-  web:
-    # 镜像按摘要固定（多架构镜像写清单列表的摘要），标签只给人看。
-    image: nginx:1.30.6-alpine@sha256:0e52bd054126cdc040b1276c0af347aeb02a41b9cfe305d6094767ac30e97949
-    # 包里的文件经 configs 交给容器（核心在启动前写进去），不能用卷挂载。
-    configs:
-      - source: site
-        target: /etc/nginx/conf.d/default.conf
-      - source: page
-        target: /usr/share/nginx/html/index.html
+  ollama:
+    image: ollama/ollama:0.40.14@sha256:ebaef4f4c5d93660e1f25f8ad085a112f51ccfb0e8458073e71793959dba91c9
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      # 服务的 API 也在本机被 ollama CLI（健康检查）访问：核心注入的代理变量（和共用 Docker 的客户端代理）
+      # 不豁免 0.0.0.0 这个主机名，会把本机请求送进代理，ollama ls 因此失败。只豁免本机地址，
+      # 拉模型的 registry.ollama.ai 照常走代理。
+      NO_PROXY: localhost,127.0.0.1,0.0.0.0
+      no_proxy: localhost,127.0.0.1,0.0.0.0
+    # 模型和身份密钥都在上游默认的 /root/.ollama；镜像默认以 root 运行，数据目录也就归 root。
+    volumes:
+      - ${WONTON_APP_DATA}/.ollama:/root/.ollama
+    # 查的是 API 真的能答话（ollama CLI 走本地 API），不只是进程活着。
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      test: ["CMD", "ollama", "ls"]
       interval: 30s
-      timeout: 5s
-      start_period: 30s
-      start_interval: 1s
-
-configs:
-  site:
-    file: web/default.conf
-  page:
-    file: web/index.html
+      timeout: 10s
+      start_period: 1m
+      start_interval: 5s
 
 x-wonton:
   spec: "0.4"
-  # 换成你自己的：反向域名形式，装上以后不能改。
-  id: app.example.hello
+  # 反向域名：上游是 ollama.com。
+  id: com.ollama.ollama
   version: 0.1.0
   kind: app
-  title: { zh: 你好, en: Hello }
-  description: { zh: 向登录的人问好的示例网页, en: An example page that greets whoever is signed in }
+  title: { en: Ollama }
+  description:
+    zh: 在自己家里跑本地大模型，给局域网设备和所有 Bot 用
+    en: Run large models locally on your own hardware, for LAN clients and every bot
   icon: icon.svg
   notices: [NOTICE]
-  category: tools
-  screenshots: [screenshots/home.png]
-  author: { name: Example }
-  homepage: https://nginx.org
-  # 应用（这里是 nginx）的许可证；插件包自己的许可证写在仓库的 LICENSE 里。
-  license: BSD-2-Clause
-  tags: [示例, example]
+  author: { name: geraldpeng6, url: https://github.com/geraldpeng6 }
+  homepage: https://ollama.com
+  # 上游 Ollama 的许可证；插件包自己的许可证写在仓库的 LICENSE 里。
+  license: MIT
+  tags:
+    zh: [AI]
+    en: [AI]
   about:
     zh: |
-      插件模板里的示例：网关认出主人后，经请求头把用户名交给应用，网页上就是“你好，<用户名>”。
+      把 Ollama 装在自己家里，用本机的算力跑开源大模型，数据不出门。
+
+      有显卡就自动用显卡（NVIDIA、AMD、Intel），没有就退回 CPU。装好后打开
+      “模型设置”（模型网关），把 http://<主机的局域网地址>:11434 填成 Ollama 的
+      provider，网关里的应用和 Bot 就能用本地模型了；局域网里的电脑和手机也能直接连这个地址。
+
+      模型的下载和删除用 Ollama 自己的命令行（docker exec 进容器跑 ollama pull / ollama rm）。
     en: |
-      The example from the plugin template: once the gateway recognises the owner, it passes the user name to
-      the app in a request header, and the page says hello to them.
+      Run Ollama on your own hardware at home and use open models locally, keeping data on your
+      machine.
+
+      It uses your GPU (NVIDIA, AMD, Intel) when there is one and falls back to CPU otherwise.
+      After installing, open “Models” (the model gateway) and add
+      http://<your-host-LAN-address>:11434 as an Ollama provider; apps and bots behind the
+      gateway can then use local models, and so can computers and phones on your LAN.
+
+      Pull and remove models with Ollama's own command line (docker exec into the container:
+      ollama pull / ollama rm).
   release_notes: { zh: 第一版。, en: First release. }
-  webui:
-    service: web
-    port: 80
-    # 应用不认 OIDC 时，由网关在请求上加上用户名（README 的“网页入口和登录”）。
-    sso: proxy
-    proxy:
-      headers:
-        Remote-User: "{user}"
-  permissions: []
+  # 出网：拉模型要走 registry.ollama.ai。
+  # 局域网：网关要够得着 Ollama 才能把它注册成 provider（ADR-0008），局域网设备直连也靠它（ADR-0023）。
+  permissions:
+    - devices.gpu
+    - network.egress
+    - network.lan
+  # 显卡给 ollama 服务；optional：没显卡照常装，退回 CPU（显卡路径未实测，见 PR）。
+  gpu:
+    services: [ollama]
+  lan:
+    ports:
+      - { service: ollama, port: 11434 }
+  requirements:
+    arch: [amd64, arm64]
+    # 上游没写最低内存；本机实测空闲约 20MiB，跑起来加小模型的余量取 256M。
+    memory: 256M
+    gpu: { need: optional }
