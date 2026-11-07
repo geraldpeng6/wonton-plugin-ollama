@@ -50,6 +50,7 @@ data_check() {
   container="$(_ollama_container)"
   [[ -n "$container" ]] || { echo "找不到 ollama 容器（wonton.instance 标签）"; return 1; }
   listing="$(docker exec "$container" ollama ls)" || { echo "ollama ls 失败"; return 1; }
-  awk -v m="$marker" '$1 == m { found = 1 } END { exit !found }' <<<"$listing" ||
+  # ollama ls 的 NAME 列带 :tag（ollama cp 得到的是 :latest），只比模型名部分。
+  awk -v m="$marker" '{ n = $1; sub(/:.*/, "", n); if (n == m) found = 1 } END { exit !found }' <<<"$listing" ||
     { echo "模型标记不在了：找了 $marker，ollama ls 现在是：$(head -c 200 <<<"$listing")"; return 1; }
 }
