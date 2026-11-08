@@ -3,7 +3,7 @@
 # 开在局域网地址上（ADR-0019/0023：Ollama 的 API 本来就是给局域网设备用的，没有鉴权，核心不拦）。
 services:
   ollama:
-    image: ollama/ollama:0.40.14@sha256:ebaef4f4c5d93660e1f25f8ad085a112f51ccfb0e8458073e71793959dba91c9
+    image: ollama/ollama:0.40.15@sha256:0e59999e0e8f9fd4e704bd788a89b7e4cad399367fb1365f8c102ac662288761
     restart: unless-stopped
     environment:
       TZ: ${TZ}
@@ -27,7 +27,7 @@ x-wonton:
   spec: "0.4"
   # 反向域名：上游是 ollama.com。
   id: com.ollama.ollama
-  version: 0.1.0
+  version: 0.1.1
   kind: app
   title: { en: Ollama }
   description:
@@ -62,7 +62,7 @@ x-wonton:
 
       Pull and remove models with Ollama's own command line (docker exec into the container:
       ollama pull / ollama rm).
-  release_notes: { zh: 第一版。, en: First release. }
+  release_notes: { zh: "升级到上游 0.40.15：支持小米 MiMo v2.6 和 AutoTrust 决策模型等新模型，ollama launch 支持更多命令行工具。", en: "Upgraded to upstream 0.40.15: new models including Xiaomi MiMo v2.6 and AutoTrust decision models; ollama launch supports more CLI tools." }
   # 出网：拉模型要走 registry.ollama.ai。
   # 局域网：网关要够得着 Ollama 才能把它注册成 provider（ADR-0008），局域网设备直连也靠它（ADR-0023）。
   permissions:
