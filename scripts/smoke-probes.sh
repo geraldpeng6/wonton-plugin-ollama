@@ -29,6 +29,10 @@ _ollama_container() {
   docker ps --format '{{.Names}}' "${args[@]}" | head -1
 }
 
+marker_file() { # SMOKE_STATE 在套件里是状态目录（e2e 传的是标记文件本身），标记放对应路径
+  if [[ -d "$SMOKE_STATE" ]]; then printf '%s' "$SMOKE_STATE/ollama-marker"; else printf '%s' "${SMOKE_STATE}.marker"; fi
+}
+
 data_write() {
   local marker container base
   [[ -n "${SMOKE_STATE:-}" ]] || { echo "SMOKE_STATE 没设"; return 1; }
@@ -40,13 +44,13 @@ data_write() {
     { echo "拉 $base 失败（容器 $container 出网不可用？）"; return 1; }
   docker exec "$container" ollama cp "$base" "$marker" ||
     { echo "ollama cp 成 $marker 失败"; return 1; }
-  printf '%s' "$marker" >"$SMOKE_STATE"
+  printf '%s' "$marker" >"$(marker_file)"
 }
 
 data_check() {
   local marker container listing
   [[ -n "${SMOKE_STATE:-}" ]] || { echo "SMOKE_STATE 没设"; return 1; }
-  marker="$(cat "$SMOKE_STATE")" || { echo "读不到 $SMOKE_STATE"; return 1; }
+  marker="$(cat "$(marker_file)")" || { echo "读不到标记文件"; return 1; }
   container="$(_ollama_container)"
   [[ -n "$container" ]] || { echo "找不到 ollama 容器（wonton.instance 标签）"; return 1; }
   listing="$(docker exec "$container" ollama ls)" || { echo "ollama ls 失败"; return 1; }
