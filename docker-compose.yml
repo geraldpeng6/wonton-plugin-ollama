@@ -1,6 +1,6 @@
-# Ollama：本地模型服务。模型经 magpie 模型网关用起来（ADR-0008：本地模型插件装好后，
+# Ollama：本地模型服务。模型经 magpie 模型网关用起来（本地模型插件装好后，
 # 在“模型设置”里把 Ollama 注册为 provider），网关的容器到不了插件网络，唯一通的路是把 API 端口
-# 开在局域网地址上（ADR-0019/0023：Ollama 的 API 本来就是给局域网设备用的，没有鉴权，核心不拦）。
+# 开在局域网地址上（Ollama 的 API 本来就是给局域网设备用的，没有鉴权，核心不拦）。
 services:
   ollama:
     image: ollama/ollama:0.40.15@sha256:0e59999e0e8f9fd4e704bd788a89b7e4cad399367fb1365f8c102ac662288761
@@ -64,7 +64,7 @@ x-wonton:
       ollama pull / ollama rm).
   release_notes: { zh: "升级到上游 0.40.15：支持小米 MiMo v2.6 和 AutoTrust 决策模型等新模型，ollama launch 支持更多命令行工具。", en: "Upgraded to upstream 0.40.15: new models including Xiaomi MiMo v2.6 and AutoTrust decision models; ollama launch supports more CLI tools." }
   # 出网：拉模型要走 registry.ollama.ai。
-  # 局域网：网关要够得着 Ollama 才能把它注册成 provider（ADR-0008），局域网设备直连也靠它（ADR-0023）。
+  # 局域网：网关要够得着 Ollama 才能把它注册成 provider，局域网设备直连也靠它。
   permissions:
     - devices.gpu
     - network.egress
