@@ -29,10 +29,10 @@ x-wonton:
   id: com.ollama.ollama
   version: 0.1.1
   kind: app
-  title: { en: Ollama }
+  title: { zh: 本地 AI 模型（Ollama）, en: Local AI Models (Ollama) }
   description:
-    zh: 在自己家里跑本地大模型，给局域网设备和所有 Bot 用
-    en: Run large models locally on your own hardware, for LAN clients and every bot
+    zh: 在家里的服务器上运行开源 AI 模型，给 Bot 和其他应用当“大脑”，聊的内容不出家门。有没有显卡都能跑、换模型方便，家用首选。
+    en: Run open-source AI models on your home server as the brain for your bots and apps, with nothing leaving home. Works with or without a graphics card and makes switching models easy — the go-to choice for most homes.
   icon: icon.svg
   notices: [NOTICE]
   author: { name: geraldpeng6, url: https://github.com/geraldpeng6 }
